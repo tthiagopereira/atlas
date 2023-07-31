@@ -37,7 +37,7 @@ func createGraphStates() map[string][]string {
 	return graphs
 }
 
-func findWay(graphs map[string][]string, start, end string) []string {
+func findWay(graphs map[string][]string, start, end string, cache map[string][]string) []string {
 	row := [][]string{{start}}
 	visited := make(map[string]bool)
 
@@ -53,10 +53,24 @@ func findWay(graphs map[string][]string, start, end string) []string {
 		if !visited[currentState] {
 			visited[currentState] = true
 
-			for _, neighbor := range graphs[currentState] {
-				newWay := append([]string{}, currentPath...)
-				newWay = append(newWay, neighbor)
-				row = append(row, newWay)
+			// Verificar se o caminho já está no cache
+			if way, ok := cache[currentState]; ok {
+				// Se estiver no cache, usamos o caminho já encontrado
+				for _, neighbor := range way {
+					newWay := append([]string{}, currentPath...)
+					newWay = append(newWay, neighbor)
+					row = append(row, newWay)
+				}
+			} else {
+				// Se não estiver no cache, calculamos o caminho e armazenamos no cache
+				neighbors := graphs[currentState]
+				cache[currentState] = neighbors
+
+				for _, neighbor := range neighbors {
+					newWay := append([]string{}, currentPath...)
+					newWay = append(newWay, neighbor)
+					row = append(row, newWay)
+				}
 			}
 		}
 	}
@@ -66,10 +80,12 @@ func findWay(graphs map[string][]string, start, end string) []string {
 
 func main() {
 	graphStates := createGraphStates()
-	way := findWay(graphStates, "SP", "RS")
+	cache := make(map[string][]string)
+
+	way := findWay(graphStates, "SP", "RS", cache)
 
 	if way != nil {
-		fmt.Println("Estados relacionandos: ", way)
+		fmt.Println("Caminhos processados: ", way)
 	} else {
 		fmt.Println("Não foi encontrado um caminho.")
 	}
