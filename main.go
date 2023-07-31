@@ -66,7 +66,7 @@ func findWay(graphs map[string][]string, start, end string) []string {
 
 func main() {
 	graphStates := createGraphStates()
-	way := findWay(graphStates, "SP", "RO")
+	way := findWay(graphStates, "SP", "RS")
 
 	if way != nil {
 		fmt.Println("Estados relacionandos: ", way)
