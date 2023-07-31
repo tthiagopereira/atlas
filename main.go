@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+)
 
 func createGraphStates() map[string][]string {
 	graphs := map[string][]string{
@@ -37,7 +40,9 @@ func createGraphStates() map[string][]string {
 	return graphs
 }
 
-func findWay(graphs map[string][]string, start, end string, cache map[string][]string) []string {
+func findWay(graphs map[string][]string, start, end string, result chan []string, wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	row := [][]string{{start}}
 	visited := make(map[string]bool)
 
@@ -47,45 +52,52 @@ func findWay(graphs map[string][]string, start, end string, cache map[string][]s
 		currentState := currentPath[len(currentPath)-1]
 
 		if currentState == end {
-			return currentPath
+			result <- currentPath
+			return
 		}
 
 		if !visited[currentState] {
 			visited[currentState] = true
 
-			// Verificar se o caminho já está no cache
-			if way, ok := cache[currentState]; ok {
-				// Se estiver no cache, usamos o caminho já encontrado
-				for _, neighbor := range way {
-					newWay := append([]string{}, currentPath...)
-					newWay = append(newWay, neighbor)
-					row = append(row, newWay)
-				}
-			} else {
-				// Se não estiver no cache, calculamos o caminho e armazenamos no cache
-				neighbors := graphs[currentState]
-				cache[currentState] = neighbors
-
-				for _, neighbor := range neighbors {
-					newWay := append([]string{}, currentPath...)
-					newWay = append(newWay, neighbor)
-					row = append(row, newWay)
-				}
+			for _, neighbor := range graphs[currentState] {
+				newWay := append([]string{}, currentPath...)
+				newWay = append(newWay, neighbor)
+				row = append(row, newWay)
 			}
 		}
 	}
 
-	return nil
+	result <- nil
 }
 
 func main() {
 	graphStates := createGraphStates()
-	cache := make(map[string][]string)
+	wayChan := make(chan []string)
+	wg := sync.WaitGroup{}
 
-	way := findWay(graphStates, "SP", "RS", cache)
+	start := "RS"
+	end := "GO"
+
+	for _, neighbor := range graphStates[start] {
+		wg.Add(1)
+		go findWay(graphStates, neighbor, end, wayChan, &wg)
+	}
+
+	go func() {
+		wg.Wait()
+		close(wayChan)
+	}()
+
+	var way []string
+	for foundWay := range wayChan {
+		if foundWay != nil {
+			way = foundWay
+			break
+		}
+	}
 
 	if way != nil {
-		fmt.Println("Caminhos processados: ", way)
+		fmt.Println("Estados relacionados:", way)
 	} else {
 		fmt.Println("Não foi encontrado um caminho.")
 	}
